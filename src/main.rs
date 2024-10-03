@@ -26,7 +26,7 @@ fn main() {
 
     genesis_block.mine();
 
-    println!("⛏️Bloco genesis minerado {:?}", &genesis_block);
+    println!("⛏️ Bloco genesis minerado {:?}", &genesis_block);
 
     let last_hash = genesis_block.hash.clone();
 
