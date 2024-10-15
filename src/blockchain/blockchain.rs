@@ -1,5 +1,6 @@
 use super::*;
 use std::collections::HashSet;
+use serde_json::json;
 
 #[derive(Debug)]
 pub enum BlockValidationErr {
@@ -25,6 +26,16 @@ impl Blockchain {
             unspent_outputs: HashSet::new(),
         }
     }
+
+    pub fn get_blocks_json(&self) {
+        let result = json!(
+            {
+                "blocks": [],
+            }
+
+        );
+        drop(result);
+    }     
 
     pub fn update_with_block (&mut self, block: Block) -> Result<(), BlockValidationErr> {
         let i = self.blocks.len();

@@ -1,70 +1,125 @@
+use actix_web::*;
+// use std::{fmt::format, sync::Mutex};
+use std::sync::Mutex;
+
+// mod routes;
+// use routes::ping::*;
+// use routes::info::*;
+// use routes::catalogo::*;
+
 use blockchainlib::*;
 
-fn main() {
-    let difficulty = 0x00000fffffffffffffffffffffffffff;
 
-    let mut genesis_block = Block::new(
-        0,
+struct AppState {
+    blockchain: Mutex<Blockchain>,
+}
+
+async fn add_block(data: web::Data<AppState>) -> HttpResponse {
+    let mut blockchain = data.blockchain.lock().unwrap();
+    let difficulty: u128 = 0x00000fffffffffffffffffffffffffff;
+    let last_index = blockchain.blocks.len();
+    let last_index_u32: u32 = if last_index <= u32::MAX as usize {
+        last_index as u32 // Safe conversion
+    } else {
+        panic!("Vector length exceeds u32 maximum value.");
+    };
+    
+
+    if last_index_u32 == 0 {
+
+        let mut genesis_block = Block::new(
+            0,
+            now(),
+            vec![0; 32],
+            vec![Transaction {
+                inputs: vec![],
+                outputs: vec![
+                    transaction::Output {
+                        to_addr: "Owner".to_owned(),
+                        value: 50,
+                    },
+                ],
+            }],
+            difficulty
+        );
+        println!("➕    Adicionado bloco genesis!");
+    
+        genesis_block.mine();
+        println!("⛏️    Bloco genesis minerado {:?}", &genesis_block);
+        let response = genesis_block.clone();
+    
+        blockchain.update_with_block(genesis_block).expect("Failed to add genesis block");
+    
+        return HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(format!("➕    Adicionado bloco genesis! <br> ⛏️    Bloco genesis minerado {:?}", response))
+
+    }
+
+    let last_hash = blockchain.blocks.last().unwrap().hash.clone();
+    let mut new_block = Block::new(
+        last_index_u32,
         now(),
-        vec![0; 32],
+        last_hash,
         vec![Transaction {
             inputs: vec![],
             outputs: vec![
                 transaction::Output {
-                    to_addr: "Alice".to_owned(),
-                    value: 50,
+                    to_addr: "Owner".to_owned(),
+                    value: 150,
                 },
-                transaction::Output {
-                    to_addr: "Bob".to_owned(),
-                    value: 7,
-                }
             ],
         }],
         difficulty
     );
-    println!("➕ Adicionado bloco genesis!");
+    println!("➕    Adicionado bloco!");
 
-    genesis_block.mine();
+    new_block.mine();
+    println!("⛏️    Bloco minerado {:?}", &new_block);
+    let response = new_block.clone();
 
-    println!("⛏️ Bloco genesis minerado {:?}", &genesis_block);
+    blockchain.update_with_block(new_block).expect("Failed to add block");
 
-    let last_hash = genesis_block.hash.clone();
+    HttpResponse::Ok()
+    .content_type("text/html; charset=utf-8")
+    .body(format!("➕    Adicionado novo bloco! <br> ⛏️    Novo bloco minerado {:?}", response))
+}
 
-    let mut blockchain = Blockchain::new();
+async fn info(data: web::Data<AppState>) -> HttpResponse {
+    let blockchain = data.blockchain.lock().unwrap();
+    let mut data: String = "🔗Blocos on-chain:".to_owned();
 
-    blockchain.update_with_block(genesis_block).expect("Failed to add genesis block");
+    // println!("{:?}",&blockchain.blocks);
+    for block in &blockchain.blocks {
+        println!("Bloco coletado{:?}", &block);
+        data = format!("{} <br> {:?}", data, &block)
+    }
 
-    let mut block = Block::new(
-        1,
-        now(),
-        last_hash,
-        vec![
-            Transaction {
-                inputs: vec![],
-                outputs: vec![transaction::Output {
-                    to_addr: "Chris".to_owned(),
-                    value: 536,
-                }],
-            },
-            Transaction {
-                inputs: vec![blockchain.blocks[0].transactions[0].outputs[0].clone()],
-                outputs: vec![
-                    transaction::Output {
-                        to_addr: "Alice".to_owned(),
-                        value: 360,
-                    },
-                    transaction::Output {
-                        to_addr: "Bob".to_owned(),
-                        value: 12,
-                    }
-                ],
-            }
-        ],
-        difficulty
-    );
-    println!("➕ Adicionado bloco!");
+    HttpResponse::Ok()
+    .content_type("text/html; charset=utf-8")
+    .body(format!("{}", data))
+}
 
-    block.mine();
 
-    println!("⛏️Bloco minerado {:?}", &block);
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    let blockchain = web::Data::new(AppState {
+        blockchain: Mutex::new(Blockchain::new())
+    });
+
+    let api = HttpServer::new( move || {
+        App::new()
+        .app_data(blockchain.clone())
+        .route("/", web::get().to(info))
+        .route("/add", web::get().to(add_block))
+
+    });
+
+    let porta = 9091;
+    let api = api.bind(format!("127.0.0.1:{}", porta)).expect("⚠️ Erro de conexão...");
+
+    println!("Conexão estabelecida! \n http://localhost:{}", porta);
+
+    api.run().await
 }

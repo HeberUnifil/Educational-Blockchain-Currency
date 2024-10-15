@@ -1,6 +1,7 @@
 use std::fmt::{ self, Debug, Formatter };
 use super::*;
 
+#[derive(Clone)]
 pub struct Block {
     pub index: u32,
     pub timestamp: u128,
@@ -79,3 +80,4 @@ impl Hashable for Block {
 pub fn check_difficulty(hash: &Hash, difficulty: u128) -> bool {
     difficulty > difficulty_bytes_as_u128(&hash)
 }
+

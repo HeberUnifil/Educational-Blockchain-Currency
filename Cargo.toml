@@ -1,17 +1,22 @@
 [package]
-name = "blockchain-in-rust"
+name = "backendtest"
 version = "0.1.0"
-authors = ["Jacob <jacob@geeklaunch.net>"]
-edition = "2018"
+edition = "2021"
 
 [lib]
 name = "blockchainlib"
-path = "src/lib.rs"
+path = "src/blockchain/lib.rs"
 
 [[bin]]
-name = "blockchain"
+name = "backend"
 path = "src/main.rs"
+
+
 
 [dependencies]
 hex = "0.3.2"
 crypto-hash = "0.3.3"
+actix-web = "4.9.0"
+hyper = "0.14"
+serde_json = "1.0.128"
+serde = { version = "1.0.210", features = ["derive"] }
