@@ -13,7 +13,6 @@ pub enum BlockValidationErr {
     InsufficientInputValue,
     InvalidCoinbaseTransaction,
 }
-
 pub struct Blockchain {
     pub blocks: Vec<Block>,
     unspent_outputs: HashSet<Hash>,
@@ -28,13 +27,25 @@ impl Blockchain {
     }
 
     pub fn get_blocks_json(&self) {
-        let result = json!(
-            {
-                "blocks": [],
+        for block in self.blocks.clone() {
+            println!("{:?}", &block);
+            println!("Transactions:");
+
+            for transaction in block.transactions {
+                println!("inputs: {:?}", &transaction.inputs);
+                println!("outputs: {:?}", &transaction.outputs);
             }
 
-        );
-        drop(result);
+        }
+        
+        
+        // let result = json!(
+        //     {
+        //         "blocks": [],
+        //     }
+
+        // );
+        // drop(result);
     }     
 
     pub fn update_with_block (&mut self, block: Block) -> Result<(), BlockValidationErr> {
@@ -61,6 +72,8 @@ impl Blockchain {
 
         if let Some((coinbase, transactions)) = block.transactions.split_first() {
             if !coinbase.is_coinbase() {
+                println!("coinbase: {:?}", &coinbase);
+                println!("transactions: {:?}", &transactions);
                 return Err(BlockValidationErr::InvalidCoinbaseTransaction);
             }
 

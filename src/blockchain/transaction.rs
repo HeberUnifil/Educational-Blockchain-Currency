@@ -1,7 +1,7 @@
 use super::*;
 use std::collections::HashSet;
 
-#[derive(Clone)]
+#[derive(Clone, serde::Deserialize, Debug)]
 pub struct Output {
     pub to_addr: Address,
     pub value: u64,
@@ -18,7 +18,7 @@ impl Hashable for Output {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, serde::Deserialize, Debug)]
 pub struct Transaction {
     pub inputs: Vec<Output>,
     pub outputs: Vec<Output>,
