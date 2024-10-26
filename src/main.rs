@@ -94,6 +94,83 @@ struct Info {
 async fn add_defined_block(data: web::Data<AppState>, info: web::Json<Info>) -> HttpResponse {
     let mut blockchain = data.blockchain.lock().unwrap();
     
+    let difficulty: u128 = 0x00000fffffffffffffffffffffffffff;
+
+    let mut genesis_block = Block::new(
+        0,
+        now(),
+        vec![0; 32],
+        vec![Transaction {
+            inputs: vec![],
+            outputs: vec![
+                transaction::Output {
+                    to_addr: "Alice".to_owned(),
+                    value: 50,
+                },
+                transaction::Output {
+                    to_addr: "Bob".to_owned(),
+                    value: 7,
+                }
+            ],
+        }],
+        difficulty
+    );
+    println!("➕    Adicionado bloco genesis!");
+
+    genesis_block.mine();
+
+    println!("⛏️    Bloco genesis minerado {:?}", &genesis_block);
+
+    let mut last_hash = genesis_block.hash.clone();
+
+    blockchain.update_with_block(genesis_block).expect("Failed to add genesis block");
+/////////////////
+    // let mut block1 = Block::new(
+    //     1,
+    //     now(),
+    //     last_hash,
+    //     vec![
+    //         Transaction {
+    //             inputs: vec![],
+    //             outputs: vec![transaction::Output {
+    //                 to_addr: "Alice".to_owned(),
+    //                 value: 50,
+    //             }],
+    //         },
+    //     ],
+    //     difficulty
+    // );
+    // println!("➕    Adicionado bloco!");
+
+    // block1.mine();
+
+    // println!("⛏️    Bloco minerado {:?}", &block1);
+    // blockchain.update_with_block(block1.clone()).expect("Failed to add block1");
+// ////////////////
+    // last_hash = block1.hash.clone();
+    let mut block2 = Block::new(
+        1,
+        now(),
+        last_hash,
+        vec![
+            Transaction {
+                inputs: vec![blockchain.blocks[0].transactions[0].outputs[0].clone(), blockchain.blocks[0].transactions[0].outputs[0].clone()],
+                outputs: vec![transaction::Output {
+                    to_addr: "Bob".to_owned(),
+                    value: 60,
+                }],
+            },
+        ],
+        difficulty
+    );
+    println!("➕    Adicionado bloco!");
+
+    block2.mine();
+
+    println!("⛏️    Bloco minerado {:?}", &block2);
+    blockchain.update_with_block(block2).expect("Failed to add block2");
+
+
 
 
 
