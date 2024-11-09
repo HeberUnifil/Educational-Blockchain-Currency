@@ -1,5 +1,6 @@
 use std::fmt::{ self, Debug, Formatter };
 use super::*;
+// CLASSE DE DEFINIÇÃO DO OBJETO BLOCO
 
 #[derive(Clone)]
 pub struct Block {
@@ -12,6 +13,7 @@ pub struct Block {
     pub difficulty: u128,
 }
 
+//IMPLEMENTAÇÃO DO METODO DEBUG PARA O OBJETO BLOCO
 impl Debug for Block {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
@@ -45,6 +47,7 @@ impl Block {
         }
     }
 
+    // METODO DE MINERAÇÃO DO BLOCO
     pub fn mine(&mut self) {
         for nonce_attempt in 0..u64::max_value() {
             self.nonce = nonce_attempt;
@@ -57,6 +60,7 @@ impl Block {
     }
 }
 
+//METODO PARA A GERAÇÃO DE UM HASH A PARTIR DE UM BLOCO 
 impl Hashable for Block {
     fn bytes(&self) -> Vec<u8> {
         let mut bytes = vec![];

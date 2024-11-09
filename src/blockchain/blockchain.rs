@@ -1,6 +1,7 @@
 use super::*;
 use std::collections::HashSet;
-use serde_json::json;
+// use serde_json::json;
+// use transaction::Output;
 
 #[derive(Debug)]
 pub enum BlockValidationErr {
@@ -26,6 +27,7 @@ impl Blockchain {
         }
     }
 
+
     pub fn get_blocks_json(&self) {
         for block in self.blocks.clone() {
             println!("{:?}", &block);
@@ -38,20 +40,16 @@ impl Blockchain {
 
         }
         
-        
-        // let result = json!(
-        //     {
-        //         "blocks": [],
-        //     }
+    } 
 
-        // );
-        // drop(result);
-    }     
 
     pub fn update_with_block (&mut self, block: Block) -> Result<(), BlockValidationErr> {
         let i = self.blocks.len();
 
         if block.index != i as u32 {
+            println!("block.index: {}", block.index);
+            println!("i: {}",i);
+
             return Err(BlockValidationErr::MismatchedIndex);
         } else if !block::check_difficulty(&block.hash(), block.difficulty) {
             return Err(BlockValidationErr::InvalidHash);
@@ -71,11 +69,11 @@ impl Blockchain {
         }
 
         if let Some((coinbase, transactions)) = block.transactions.split_first() {
-            if !coinbase.is_coinbase() {
-                println!("coinbase: {:?}", &coinbase);
-                println!("transactions: {:?}", &transactions);
-                return Err(BlockValidationErr::InvalidCoinbaseTransaction);
-            }
+            // if !coinbase.is_coinbase() {
+            //     println!("coinbase: {:?}", &coinbase);
+            //     println!("transactions: {:?}", &transactions);
+            //     return Err(BlockValidationErr::InvalidCoinbaseTransaction);
+            // }
 
             let mut block_spent: HashSet<Hash> = HashSet::new();
             let mut block_created: HashSet<Hash> = HashSet::new();

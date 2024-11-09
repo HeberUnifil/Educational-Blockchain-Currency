@@ -9,8 +9,19 @@ use blockchainlib::*;
 struct AppState {
     blockchain: Mutex<Blockchain>,
 }
-
-async fn add_block(data: web::Data<AppState>) -> HttpResponse {
+// CARREGA AS INFORMAÇÕES ENVIADAS VIA REQUEST JSON
+#[derive(Deserialize)]
+struct Info {    
+    sender: String,
+    receiver: String,
+    input_value: u64,
+    output_value: u64
+    // IMPLEMENTAR UMA PESQUISA APRIMORADA DE SALDO DO SENDER ANTES DA CRIAÇÃO DO BLOCO
+        
+}
+//IMPLEMENTA MÉTODO PARA ADICIONAR E MINERAR UM BLOCO BASEADO NUMA REQUEST JSON
+// NESTE MÉTODO, CASO A REQUEST APRESENTE UM REMETENTE, OCORRE UMA TRANSAÇÃO CONVENCIONAL, CASO CONTRARIO, OCORRE UMA TRANSAÇÃO DE BASE MONETÁRIA 
+async fn add_defined_block(data: web::Data<AppState>, info: web::Json<Info>) -> HttpResponse {
     let mut blockchain = data.blockchain.lock().unwrap();
     let difficulty: u128 = 0x00000fffffffffffffffffffffffffff;
     let last_index = blockchain.blocks.len();
@@ -24,7 +35,7 @@ async fn add_block(data: web::Data<AppState>) -> HttpResponse {
     if last_index_u32 == 0 {
 
         let mut genesis_block = Block::new(
-            0,
+            last_index_u32.clone(),
             now(),
             vec![0; 32],
             vec![Transaction {
@@ -32,7 +43,7 @@ async fn add_block(data: web::Data<AppState>) -> HttpResponse {
                 outputs: vec![
                     transaction::Output {
                         to_addr: "Owner".to_owned(),
-                        value: 50,
+                        value: 150,
                     },
                 ],
             }],
@@ -52,8 +63,10 @@ async fn add_block(data: web::Data<AppState>) -> HttpResponse {
 
     }
 
-    let last_hash = blockchain.blocks.last().unwrap().hash.clone();
-    let mut new_block = Block::new(
+    if info.sender == ""{
+        
+        let last_hash = blockchain.blocks.last().unwrap().hash.clone();
+        let mut new_block = Block::new(
         last_index_u32,
         now(),
         last_hash,
@@ -61,203 +74,78 @@ async fn add_block(data: web::Data<AppState>) -> HttpResponse {
             inputs: vec![],
             outputs: vec![
                 transaction::Output {
-                    to_addr: "Owner".to_owned(),
-                    value: 150,
+                    to_addr: info.receiver.clone().to_owned(),
+                    value: info.output_value.clone(),
                 },
             ],
         }],
         difficulty
-    );
-    println!("➕    Adicionado bloco!");
+        );
+        println!("➕    Adicionado bloco!");
 
-    new_block.mine();
-    println!("⛏️    Bloco minerado {:?}", &new_block);
-    let response = new_block.clone();
+        new_block.mine();
+        println!("⛏️    Bloco minerado {:?}", &new_block);
+        let response = new_block.clone();
 
-    blockchain.update_with_block(new_block).expect("Failed to add block");
+        blockchain.update_with_block(new_block).expect("Failed to add block");
 
-    HttpResponse::Ok()
-    .content_type("text/html; charset=utf-8")
-    .body(format!("➕    Adicionado novo bloco! <br> ⛏️    Novo bloco minerado {:?}", response))
-}
+        return HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(format!("➕    Adicionado novo bloco! <br> ⛏️    Novo bloco minerado {:?}", response))
+    }
 
-
-#[derive(Deserialize)]
-struct Info {    
-    sender: String,
-    receiver: String,
-    value: u64
-    // IMPLEMENTAR A PESQUISA DE SALDO DO SENDER ANTES DA CRIAÇÃO DO BLOCO
-        
-}
-
-async fn add_defined_block(data: web::Data<AppState>, info: web::Json<Info>) -> HttpResponse {
-    let mut blockchain = data.blockchain.lock().unwrap();
-    
-    let difficulty: u128 = 0x00000fffffffffffffffffffffffffff;
-
-    let mut genesis_block = Block::new(
-        0,
-        now(),
-        vec![0; 32],
-        vec![Transaction {
-            inputs: vec![],
-            outputs: vec![
-                transaction::Output {
-                    to_addr: "Alice".to_owned(),
-                    value: 50,
-                },
-                transaction::Output {
-                    to_addr: "Bob".to_owned(),
-                    value: 7,
-                }
-            ],
-        }],
-        difficulty
-    );
-    println!("➕    Adicionado bloco genesis!");
-
-    genesis_block.mine();
-
-    println!("⛏️    Bloco genesis minerado {:?}", &genesis_block);
-
-    let mut last_hash = genesis_block.hash.clone();
-
-    blockchain.update_with_block(genesis_block).expect("Failed to add genesis block");
-/////////////////
-    // let mut block1 = Block::new(
-    //     1,
-    //     now(),
-    //     last_hash,
-    //     vec![
-    //         Transaction {
-    //             inputs: vec![],
-    //             outputs: vec![transaction::Output {
-    //                 to_addr: "Alice".to_owned(),
-    //                 value: 50,
-    //             }],
-    //         },
-    //     ],
-    //     difficulty
-    // );
-    // println!("➕    Adicionado bloco!");
-
-    // block1.mine();
-
-    // println!("⛏️    Bloco minerado {:?}", &block1);
-    // blockchain.update_with_block(block1.clone()).expect("Failed to add block1");
-// ////////////////
-    // last_hash = block1.hash.clone();
-    let mut block2 = Block::new(
-        1,
+    let last_hash = blockchain.blocks.last().unwrap().hash.clone();
+    let mut new_block = Block::new(
+        last_index_u32,
         now(),
         last_hash,
-        vec![
-            Transaction {
-                inputs: vec![blockchain.blocks[0].transactions[0].outputs[0].clone(), blockchain.blocks[0].transactions[0].outputs[0].clone()],
-                outputs: vec![transaction::Output {
-                    to_addr: "Bob".to_owned(),
-                    value: 60,
-                }],
-            },
-        ],
+        vec![Transaction {
+            inputs: vec![
+                transaction::Output {
+                    to_addr: info.sender.clone().to_owned(),
+                    value: info.input_value.clone(),
+                },
+            ],
+            outputs: vec![
+                transaction::Output {
+                    to_addr: info.receiver.clone().to_owned(),
+                    value: info.output_value.clone(),
+                },
+                transaction::Output {
+                    to_addr: info.sender.clone().to_owned(),
+                    value: info.input_value.clone() - info.output_value.clone(),
+                },
+            ],
+        }],
         difficulty
-    );
-    println!("➕    Adicionado bloco!");
+        );
+        println!("➕    Adicionado bloco!");
 
-    block2.mine();
+        new_block.mine();
+        println!("⛏️    Bloco minerado {:?}", &new_block);
+        let response = new_block.clone();
 
-    println!("⛏️    Bloco minerado {:?}", &block2);
-    blockchain.update_with_block(block2).expect("Failed to add block2");
+        blockchain.update_with_block(new_block).expect("Failed to add block");
 
-
-
-
-
-    HttpResponse::Ok()
-    .content_type("text/html; charset=utf-8")
-    .body(format!("➕    Adicionado bloco genesis! <br> ⛏️    Bloco genesis minerado"))
-    
-
-
-    // let mut blockchain = data.blockchain.lock().unwrap();
-    // let difficulty: u128 = 0x000000ffffffffffffffffffffffffff;
-    // let last_index = blockchain.blocks.len();
-    // let last_index_u32: u32 = if last_index <= u32::MAX as usize {
-    //     last_index as u32 // Safe conversion
-    // } else {
-    //     panic!("Vector length exceeds u32 maximum value.");
-    // };
-    
-
-    // if last_index_u32 == 0 {
-
-    //     let mut genesis_block = Block::new(
-    //         last_index_u32,
-    //         now(),
-    //         vec![0; 32],
-    //         vec![Transaction {
-    //             inputs: vec![],
-    //             outputs: vec![
-    //                 transaction::Output {
-    //                     to_addr: "Owner".to_owned(),
-    //                     value: 150,
-    //                 },
-    //             ],
-    //         }],
-    //         difficulty
-    //     );
-    //     println!("➕    Adicionado bloco genesis!");
-    
-    //     genesis_block.mine();
-    //     println!("⛏️    Bloco genesis minerado {:?}", &genesis_block);
-    //     let response = genesis_block.clone();
-    
-    //     blockchain.update_with_block(genesis_block).expect("Failed to add genesis block");
-    
-    //     return HttpResponse::Ok()
-    //     .content_type("text/html; charset=utf-8")
-    //     .body(format!("➕    Adicionado bloco genesis! <br> ⛏️    Bloco genesis minerado {:?}", response))
-
-    // }
-
-    // let last_hash = blockchain.blocks.last().unwrap().hash.clone();
-    // let mut new_block = Block::new(
-    //     last_index_u32,
-    //     now(),
-    //     last_hash,
-    //     vec![Transaction {
-    //         inputs: vec![],
-    //         outputs: vec![
-    //             transaction::Output {
-    //                 to_addr: "Owner".to_owned(),
-    //                 value: 150,
-    //             },
-    //         ],
-    //     }],
-    //     difficulty
-    // );
-    // println!("➕    Adicionado bloco!");
-
-    // new_block.mine();
-    // println!("⛏️    Bloco minerado {:?}", &new_block);
-    // let response = new_block.clone();
-
-    // blockchain.update_with_block(new_block).expect("Failed to add block");
-
-    // HttpResponse::Ok()
-    // .content_type("text/html; charset=utf-8")
-    // .body(format!("➕    Adicionado novo bloco! <br> ⛏️    Novo bloco minerado {:?}", response))
+        HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(format!("➕    Adicionado novo bloco! <br> ⛏️    Novo bloco minerado {:?}", response))
 }
-
+//IMPLEMENTAÇÃO DO MÉTODO PARA APRESENTAR TODOS OS DADOS DA BLOCKCHAIN
 async fn info(data: web::Data<AppState>) -> HttpResponse {
     let blockchain = data.blockchain.lock().unwrap();
     let mut data: String = "🔗Blocos on-chain:".to_owned();
 
     // println!("{:?}",&blockchain.blocks);
     for block in &blockchain.blocks {
-        println!("Bloco coletado{:?}", &block);
-        data = format!("{} <br> {:?}", data, &block)
+        // println!("Bloco coletado{:?}", &block);
+        let mut trasactions = "✔️Transações: <br>".to_string();
+        
+        for t in block.transactions.clone(){
+            trasactions = format!("{}   Entradas: {:?} <br> Saidas {:?} <br>", trasactions, t.inputs, t.outputs)
+        }
+
+        data = format!("{} <br> BLOCO [{}]: {:?} <br>   🕝Timestamp: {} <br>    ↩️Hash do Bloco Anterior: {} <br>    ⛏️Tentativas: {} <br>    {}____________________________________", data, &block.index, hex::encode(&block.hash) ,&block.timestamp, hex::encode(&block.prev_block_hash),  &block.nonce, trasactions)
     }
     blockchain.get_blocks_json();
     HttpResponse::Ok()
@@ -278,8 +166,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
         .app_data(blockchain.clone())
         .route("/", web::get().to(info))
-        .route("/add", web::get().to(add_block))
-        .route("/defined", web::post().to(add_defined_block))
+        .route("/add", web::post().to(add_defined_block))
         
 
     });

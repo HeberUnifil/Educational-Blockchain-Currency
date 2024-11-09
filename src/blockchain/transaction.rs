@@ -1,7 +1,9 @@
 use super::*;
 use std::collections::HashSet;
+use std::fmt::{ self, Debug, Formatter};
 
-#[derive(Clone, serde::Deserialize, Debug)]
+
+#[derive(Clone, serde::Deserialize)]
 pub struct Output {
     pub to_addr: Address,
     pub value: u64,
@@ -18,10 +20,33 @@ impl Hashable for Output {
     }
 }
 
-#[derive(Clone, serde::Deserialize, Debug)]
+#[derive(Clone, serde::Deserialize)]
 pub struct Transaction {
     pub inputs: Vec<Output>,
     pub outputs: Vec<Output>,
+}
+impl Debug for Transaction {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Entradas: {:?}, Saidas: {:?}",
+            &self.inputs,
+            &self.outputs,
+        )
+    }
+}
+
+
+impl Debug for Output {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "[Endereço: {}, Moedas: {}]",
+            &self.to_addr,
+            &self.value,
+
+        )
+    }
 }
 
 impl Transaction {
